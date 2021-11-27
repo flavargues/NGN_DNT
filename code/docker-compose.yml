@@ -1,0 +1,7 @@
+services:
+    daemon:
+        image: docker:dind
+        ports:
+        - "2376:2376"
+        privileged: true
+        command: dockerd --host=tcp://0.0.0.0:2376 --host=unix:///var/run/docker.sock --tls=false
