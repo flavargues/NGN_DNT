@@ -1,0 +1,5 @@
+FROM  brockners/twamp
+COPY . /home/vagrant/comnetsemu
+WORKDIR /home/vagrant/comnetsemu
+RUN  brockners/twamp-o Test client.c
+CMD ["./ test"]
