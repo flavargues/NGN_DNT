@@ -1,0 +1,5 @@
+docker run  -i -t --cap-add NET_ADMIN traffic-control:latest /bin/bash
+tc qdisc add dev eth0 root netem rate () mbit loss ()% delay () ms
+tc qdisc show dev eth0 (to see port status)
+tc qdisc del dev eth0 root( to delet existing rule)
+iftop -n (to check rate)
