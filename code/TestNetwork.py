@@ -87,72 +87,60 @@ class TestNetwork():
 			center.reload()
 			for network in self.networkList:
 				network.reload()
+				#if network.name == "bridge":
+				#	continue
 				gateways[network.name] = center.attrs['NetworkSettings']['Networks'][network.name]['IPAddress']
+				
+			output = list()
 			for edge in self.containerList[1:]:
 				edge.reload()
 				myNetwork = list(edge.attrs['NetworkSettings']['Networks'])[0]
 				myGateway = gateways[myNetwork]
-				output = edge.exec_run(f"ip route del default;	ip route add default via {myGateway}", tty=True)
-
-			"""gateways = dict()
-			for it in self.containerList:
-				it.reload()
-			for it in self.containerList:
-				if it.name == "host0":
-					networks = list(it.attrs['NetworkSettings']['Networks'].keys())
-					for key in networks:
-						gateways[key] = it.attrs['NetworkSettings']['Networks'][str(key)]['IPAddress']
-				elif it.name != "host0":
-					myGateway = gateways.index(str(list(	it.attrs['NetworkSettings']['Networks'].keys() )[0]   ))
-					myGateway = gateways[str(list(it.attrs['NetworkSettings']['Networks'].keys())[0])]
-					it.exec_run(f"ip route del default; ip route add default via {myGateway}")"""
-		#add host names
-		hostsFile = ""
+				command = f"ip route add default via {myGateway}"
+				output.append( edge.exec_run("ip route del default", tty=True) )
+				time.sleep(0.5)
+				output.append( edge.exec_run(f"ip route add default via {myGateway}", tty=True) )
+		
+		#build IP table
+		self.IPTable = {}
 		for it in self.containerList:
 			it.reload()
-			itOneNetwork = it.attrs['NetworkSettings']['Networks'].keys()[0]
+			itOneNetwork = list(it.attrs['NetworkSettings']['Networks'].keys())[0]
 			itIP = it.attrs['NetworkSettings']['Networks'][itOneNetwork]["IPAddress"]
-			hostsFile += itIP + " " + it.name[1:] + "{}".format("\n")
-		for it in self.containerList:
-			it.exec_run("echo " + hostsFile + " >> /etc/hosts")
+			self.IPTable[ str(it.name) ] = ( str(itIP) )
+
 		
 		
-	#def getIPAddr(self):
-	#	ipList = dict()
-	#	for it in self.containerList:
-	#		it.reload()
-	#		ipList[it.attrs['Name']] = it.attrs['NetworkSettings']['Networks']['bridge']['IPAddress']
-	#	return ipList
-	#def generateHostsFileString(self, hostsIP):
-	#	append = ""
-	#	for it in self.containerList:
-	#		name = it.attrs['Name']
-	#		ip = hostsIP[name]
-	#		append += ip + " " + name[1:] + "{}".format("\n")
-	#	return append
+		
+	def _resolve(self, name: str):
+		if name in self.IPTable:
+			return self.IPTable[name]
+		else:
+			raise KeyError(name)
+
 
 	def ping(self, sender:str, receiver:str, duration:int = 5):
-		feedback = self.dockerDaemon.containers.get(sender).exec_run("ping -Aq -c 1000 " + receiver, tty=True)
+
+		out = self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self._resolve(receiver), tty=True)
 		
-		count = feedback.count
-		exit_code = feedback.exit_code
-		index = feedback.index
-		
-		output = str(feedback.output)
-		pt = re.search("(\d{1,}) pa", output)
-		pr = re.search("(\d{1,}) r", output)
-		rtt = re.search("(\d{1,})ms", output)
+		#feedback = dict()
+		#feedback['count'] = out.count
+		#feedback['exit_code'] = out.exit_code
+		#feedback['index'] = out.index
+		#output = str(feedback.output)
+		#feedback['output'] = output
+		#feedback['pt'] = re.search("(\d{1,}) pa", out)
+		#feedback['pr'] = re.search("(\d{1,}) r", out)
+		#feedback['rtt'] = re.search("(\d{1,})ms", out)
+		#temp = re.search("mdev(.{1,}),", out)
+		#feedback['min'] = re.findall("\d{1,}.\d{1,}", temp)[0]
+		#feedback['avg'] = re.findall("\d{1,}.\d{1,}", temp)[1]
+		#feedback['max'] = re.findall("\d{1,}.\d{1,}", temp)[2]
+		#feedback['mdev'] = re.findall("\d{1,}.\d{1,}", temp)[3]
+		#feedback['ipg'] = re.search("ewma (\d{1,}.\d{1,})", out)
+		#feedback['ewma'] = re.search("\/(\d{1,}.\d{1,}) ms\\r", out)
 
-		temp = re.search("mdev(.{1,}),", output)
-		min = re.findall("\d{1,}.\d{1,}", temp)[0]
-		avg = re.findall("\d{1,}.\d{1,}", temp)[1]
-		max = re.findall("\d{1,}.\d{1,}", temp)[2]
-		mdev = re.findall("\d{1,}.\d{1,}", temp)[3]
-
-		ipg = re.search("ewma (\d{1,}.\d{1,})", output)
-		ewma = re.search("\/(\d{1,}.\d{1,}) ms\\r", output)
-
-		return count, exit_code, index, pt, pr, rtt , temp, min, avg, max, mdev, ipg, ewma
+		return out
 
 
 """
