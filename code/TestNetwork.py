@@ -1,7 +1,11 @@
 #docker run --label "com.docker-tc.limit=1mbps" --label "com.docker-tc.delay=100ms" --label "com.docker-tc.loss=50%" --label "com.docker-tc.duplicate=50%" -it abbey22/traffic-control
 from docker import *
+from docker.api import image
 from docker.errors import *
 import time
+from progress.bar import Bar
+
+from docker.types.networks import NetworkingConfig
 
 class TestNetworkConfiguration():
 	"""
@@ -18,6 +22,12 @@ class TestNetworkConfiguration():
 				corrupt=  ["0%"   ,"0%"    ,"0%"    ,"0%"    ]
 			)
 	"""
+	def len(self):
+		return len(list(self._params.keys()))
+
+	def names(self):
+		return list(self._params.keys())
+
 	def __init__(self, topology:str="full", names=None, numberOfNodes:int=None, throttled:list=None, bandwidth:list=None, delay:list=None,
 	loss:list=None, duplicate:list=None, corrupt:list=None):
 		self._params=dict()
@@ -40,11 +50,31 @@ class TestNetworkConfiguration():
 				("enabled",   bool(throttled[i] == "True"), ),
 				("bandwidth", str(bandwidth[i]),            ),
 				("delay",     str(delay[i]),                ),
-				("loss",      int(loss[i].strip("%")),      ),
-				("duplicate", int(duplicate[i].strip("%"))  ),
-				("corrupt",   int(corrupt[i].strip("%"))    )
+				("loss",      str(loss[i])                  ),
+				("duplicate", str(duplicate[i])             ),
+				("corrupt",   str(corrupt[i])               )
 			])
 			self._params[str(list(self._params.keys())[i])] = myParams
+			self.__labels = 0
+	def _labels(self):
+		if self.__labels == 0:
+			output = dict()
+			for container in enumerate(self._params):
+				thisContainer = dict()
+
+				name = container[1]
+				thisContainer['com.docker-tc.enabled'] = str(int((self._params[name]['enabled'])))
+				thisContainer['com.docker-tc.limit'] = self._params[name]['bandwidth']
+				thisContainer['com.docker-tc.delay'] = self._params[name]['delay']
+				thisContainer['com.docker-tc.loss'] = self._params[name]['loss']
+				thisContainer['com.docker-tc.duplicate'] = self._params[name]['duplicate']
+				thisContainer['com.docker-tc.corrupt'] = self._params[name]['corrupt']
+				thisContainer['edu.testNetwork.managed'] = "1"
+
+				output[name] = thisContainer
+			self.__labels = output
+		return self.__labels
+		
 
 			
 
@@ -52,6 +82,7 @@ class TestNetwork():
 	def __init__(self):
 		self.containerList = []
 		self.networkList = []
+		self.trafficController = 0
 
 #main
 	def connect(self, dockerDaemon = 'unix:///var/run/docker.sock'):
@@ -69,64 +100,73 @@ class TestNetwork():
 	def destroy(self):
 		for it in self.containerList:
 			try:
+				#self.containerList.remove(it)
 				it.remove(force=True)
-			except Exception as error:
-				pass
+			except Exception:
+				raise
 		self.dockerDaemon.networks.prune()
-		self.containerList = []
 		self.networkList = []
-		#if len(self.containerList):
-		#	for i in range(10):
-		#		détruire container host{i}
+		self.containerList = []
+		self.trafficController.remove(force=True)
+		self.trafficController = 0
+		if len(self.containerList) > 0:
+			for unknownContainer in self.dockerDaemon.containers.list():
+				try:
+					unknownContainer.reload()
+					if unknownContainer.attrs['Config']["Labels"]['edu.testNetwork.managed'] == "1":
+						self.containerList.append(unknownContainer)
+				except KeyError:
+					continue
+		
+	def __ensureTrafficControl(self):
+		if self.trafficController == 1:
+			self.trafficController = self.dockerDaemon.containers.create("lukaszlach/docker-tc",
+			name="docker-tc", cap_add=["NET_ADMIN"])
+		
 
 	def build(self, networkConfig: TestNetworkConfiguration):
-		"""docker network create test-net
-		docker run -it \
-			--net test-net \
-			--label "com.docker-tc.enabled=1" \
-			--label "com.docker-tc.limit=1mbps" \
-			--label "com.docker-tc.delay=100ms" \
-			--label "com.docker-tc.loss=50%" \
-			--label "com.docker-tc.duplicate=50%" \
-			--label "com.docker-tc.corrupt=10%" \
-			busybox \
-			ping google.com"""
+		image = "alpineping"
+		command="/bin/sh"
 
 		topology = networkConfig.topology
 		#better destroy
 		if len(self.containerList) > 0:
 			self.destroy()
-		
+
+		self.__ensureTrafficControl()
 
 		if topology == "full":
-			for i in range(NumberOfContainers):
+			for index, containerName in enumerate(networkConfig._params):
+
 				try:
-					newContainer = self.dockerDaemon.containers.create("alpineping", command="/bin/sh",
-						tty=True, detach=True, cap_add=["NET_ADMIN"], name=f"host{i}")
-						
+					myLabels = networkConfig._labels()[containerName]
+					newContainer = self.dockerDaemon.containers.create(image=image, command=command,
+						tty=True, detach=True, cap_add=["NET_ADMIN"], name=containerName,
+						labels=myLabels)
 					self.containerList.append(newContainer)
 					newContainer.start()
 				except Exception as error:
 					self.destroy()
 					raise
-
 		elif topology == "star":
-			for i in range(NumberOfContainers):
+			for index, containerName in enumerate(networkConfig._params):
 				try:
-					if i == 0:
-						for j in range(1, NumberOfContainers):
+					if index == 0:
+						for j in range(1, networkConfig.len()):
 							self.networkList.append(self.dockerDaemon.networks.create(f"b0-{j}"))
 
-						newContainer = self.dockerDaemon.containers.create("alpineping", command="/bin/sh",
-							tty=True, detach=True, cap_add=["NET_ADMIN"] , name="host0")
+						newContainer = self.dockerDaemon.containers.create(image=image, command=command,
+							tty=True, detach=True, cap_add=["NET_ADMIN"], name=containerName,
+							labels=networkConfig._labels()[containerName])
 						self.containerList.append(newContainer)
 
 						for it in self.networkList:
-							it.connect("host0")
+							it.connect(networkConfig.names()[0])
 						
 					else:
-						newContainer = self.dockerDaemon.containers.create("alpineping", command="/bin/sh",
-							tty=True, detach=True, cap_add=["NET_ADMIN"], name=f"host{i}", network=f"b0-{i}")
+						newContainer = self.dockerDaemon.containers.create(image=image, command=command,
+							tty=True, detach=True, cap_add=["NET_ADMIN"], name=containerName,
+							labels=networkConfig._labels()[containerName], network=f"b0-{index}")
 						self.containerList.append(newContainer)
 						
 					newContainer.start()
@@ -135,8 +175,8 @@ class TestNetwork():
 				except Exception as error:
 					self.destroy()
 					raise
-			time.sleep(2)
-
+			
+			
 			gateways = dict()
 			center = self.containerList[0]
 			center.reload()
@@ -164,19 +204,18 @@ class TestNetwork():
 			itIP = it.attrs['NetworkSettings']['Networks'][itOneNetwork]["IPAddress"]
 			self.IPTable[ str(it.name) ] = ( str(itIP) )
 
-		
-		
-		
 	def _resolve(self, name: str):
 		if name in self.IPTable:
 			return self.IPTable[name]
 		else:
 			raise KeyError(name)
 
+	def traceroute(self, sender:str, receiver:str):
+		return self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self._resolve(receiver), tty=True)
 
 	def ping(self, sender:str, receiver:str, duration:int = 5):
 
-		out = self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self._resolve(receiver), tty=True)
+		out = self.dockerDaemon.containers.get(sender).exec_run("ping -Aq -c 1000 " + self._resolve(receiver), tty=True)
 		
 		#feedback = dict()
 		#feedback['count'] = out.count
@@ -196,17 +235,3 @@ class TestNetwork():
 		#feedback['ewma'] = re.search("\/(\d{1,}.\d{1,}) ms\\r", out)
 
 		return out
-
-
-"""
-for twamp
-	add file for the github
-	compile them
-for ping
-	apk get install iputils
-for bandwidth
-	apt get install iftops
-OWAMP ?
-	???
-
-"""
