@@ -2,7 +2,51 @@
 from docker import *
 from docker.errors import *
 import time
-import re
+
+class TestNetworkConfiguration():
+	"""
+	Example:
+
+		>>> configuration = TestNetworkConfiguration(
+				topology="star",
+				names=    ["host0", "host1", "host2", "host3"],
+				throttled=["True" ,"True"  ,"True"  ,"True"  ],
+				bandwidth=["1mbps","1mbps" ,"1mbps" ,"1mbps" ],
+				delay=    ["100ms","100ms" ,"100ms" ,"100ms" ],
+				loss=     ["50%"  ,"50%"   ,"50%"   ,"50%"   ],
+				duplicate=["0%"   ,"0%"    ,"0%"    ,"0%"    ],
+				corrupt=  ["0%"   ,"0%"    ,"0%"    ,"0%"    ]
+			)
+	"""
+	def __init__(self, topology:str="full", names=None, numberOfNodes:int=None, throttled:list=None, bandwidth:list=None, delay:list=None,
+	loss:list=None, duplicate:list=None, corrupt:list=None):
+		self._params=dict()
+
+		if topology.lower() in ["full", "star"]:
+			self.topology=topology.lower()
+		else:
+			raise ValueError(f"Bad topology={str(topology)}.")
+
+		if type(names) == list and len(names) > 3 and len(names) < 10:
+			self._params = {me: dict() for me in names}
+		else:
+			if type(numberOfNodes) == int and numberOfNodes > 3 and numberOfNodes < 10:
+				self._params = {f"host{i}": dict() for i in range(numberOfNodes)}
+			else:
+				raise ValueError(f"Bad names={str(names)} 3<list<10 or numberOfNodes={str(numberOfNodes)} 3<x<10.")
+
+		for i in range(len(self._params)):
+			myParams = dict([
+				("enabled",   bool(throttled[i] == "True"), ),
+				("bandwidth", str(bandwidth[i]),            ),
+				("delay",     str(delay[i]),                ),
+				("loss",      int(loss[i].strip("%")),      ),
+				("duplicate", int(duplicate[i].strip("%"))  ),
+				("corrupt",   int(corrupt[i].strip("%"))    )
+			])
+			self._params[str(list(self._params.keys())[i])] = myParams
+
+			
 
 class TestNetwork():
 	def __init__(self):
@@ -35,15 +79,26 @@ class TestNetwork():
 		#	for i in range(10):
 		#		détruire container host{i}
 
-	def build(self, topology: str, NumberOfContainers: int):
-		topology = topology.lower()
-		if topology not in ['star', 'fully connected'] or NumberOfContainers < 0 or NumberOfContainers > 10:
-			raise Exception("Bad arguments.", topology, NumberOfContainers)
+	def build(self, networkConfig: TestNetworkConfiguration):
+		"""docker network create test-net
+		docker run -it \
+			--net test-net \
+			--label "com.docker-tc.enabled=1" \
+			--label "com.docker-tc.limit=1mbps" \
+			--label "com.docker-tc.delay=100ms" \
+			--label "com.docker-tc.loss=50%" \
+			--label "com.docker-tc.duplicate=50%" \
+			--label "com.docker-tc.corrupt=10%" \
+			busybox \
+			ping google.com"""
+
+		topology = networkConfig.topology
+		#better destroy
 		if len(self.containerList) > 0:
 			self.destroy()
 		
 
-		if topology == "fully connected":
+		if topology == "full":
 			for i in range(NumberOfContainers):
 				try:
 					newContainer = self.dockerDaemon.containers.create("alpineping", command="/bin/sh",
