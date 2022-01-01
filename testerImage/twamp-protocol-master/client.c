@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
     /* Sanity check */
 #if 1
     if (getuid() == 0) {
-        fprintf(stderr, "%s should not be run as root\n", progname);
+        //fprintf(stderr, "%s should not be run as root\n", progname);
         //exit(EXIT_FAILURE);
     }
 #endif

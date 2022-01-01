@@ -53,6 +53,7 @@ class TestNetworkConfiguration():
 			])
 			self._params[str(list(self._params.keys())[i])] = myParams
 			self.__labels = 0
+
 	def _labels(self):
 		if self.__labels == 0:
 			output = dict()
@@ -223,21 +224,26 @@ class TestNetwork():
 			self.IPTable[ str(it.name) ] = ( str(itIP) )
 		bar.finish()
 
-	def _resolve(self, name: str):
+	def __resolve(self, name: str):
 		if name in self.IPTable:
 			return self.IPTable[name]
 		else:
 			raise KeyError(name)
 
 	def traceroute(self, sender:str, receiver:str):
-		return self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self._resolve(receiver), tty=True)
+		return self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self.__resolve(receiver), tty=True)
 
 	def iperf3(self, sender: str, receiver:str):
-		return self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self._resolve(receiver), tty=True)
+		return self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
+
+	def twamp(self, sender: str, receiver:str):
+		pass
+		return self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
+
 
 	def ping(self, sender:str, receiver:str, duration:int = 5):
 
-		out = self.dockerDaemon.containers.get(sender).exec_run("ping -Aq -c 1000 " + self._resolve(receiver), tty=True)
+		out = self.dockerDaemon.containers.get(sender).exec_run(f"ping -Aqw {duration} " + self.__resolve(receiver), tty=True)
 		
 		#feedback = dict()
 		#feedback['count'] = out.count
