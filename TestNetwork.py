@@ -136,7 +136,7 @@ class TestNetwork():
 	def build(self, networkConfig: TestNetworkConfiguration):
 		bar = Bar('Starting Traffic Control', max=networkConfig.len() + 1)
 
-		image = "flavargues/testerImage"
+		image = "flavargues/testerimage"
 		command="/bin/sh"
 
 		topology = networkConfig.topology
@@ -236,10 +236,8 @@ class TestNetwork():
 	def iperf3(self, sender: str, receiver:str):
 		return self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
 
-	def twamp(self, sender: str, receiver:str):
-		pass
-		return self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
-
+	def twamp(self, sender: str, receiver:str, test_sessions:int = 2, test_sess_msgs:int = 2):
+		return self.dockerDaemon.containers.get(sender).exec_run(f"/app/client -p 8000 -n {test_sessions} -m {test_sess_msgs} -s " + self.__resolve(receiver), tty=True)
 
 	def ping(self, sender:str, receiver:str, duration:int = 5):
 

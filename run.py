@@ -1,6 +1,6 @@
 from TestNetwork import *
 a = TestNetwork()
-a.connect()
+a.connect('tcp://127.0.0.1:2375')
 
 configuration = TestNetworkConfiguration(
 	topology="star",
@@ -15,8 +15,11 @@ configuration = TestNetworkConfiguration(
 
 a.build(configuration)
 
-a.ping("host1", "host2")
-a.traceroute("host1", "host2")
-a.iperf3("host1", "host2")
+
+
+print(a.ping("host1", "host2"))
+print(a.traceroute("host1", "host2"))
+print(a.iperf3("host1", "host2"))
+print(a.twamp("host1", "host2"))
 
 a.destroy()
