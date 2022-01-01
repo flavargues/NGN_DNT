@@ -37,7 +37,7 @@ TestNet.connect('tcp://127.0.0.1:2375')
 a.destroy()
 ```
 
-###Writing and Building your configuration
+### Writing and Building your configuration
 
 Not written
 ```python
@@ -56,9 +56,9 @@ TestNet.build(configuration)
 ```
 
 Not written
-##Run your tests
+## Run your tests
 
-````
+````python
 a.ping("host1", "host2")
 a.traceroute("host1", "host2")
 a.iperf3("host1", "host2")
