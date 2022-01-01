@@ -1,13 +1,8 @@
-#docker run --label "com.docker-tc.limit=1mbps" --label "com.docker-tc.delay=100ms" --label "com.docker-tc.loss=50%" --label "com.docker-tc.duplicate=50%" -it abbey22/traffic-control
-from types import MemberDescriptorType
 from docker import *
-from docker.api import image
 from docker.errors import *
 from docker.types import Mount
 import time
 from progress.bar import Bar
-
-from docker.types.networks import NetworkingConfig
 
 class TestNetworkConfiguration():
 	"""
@@ -140,7 +135,7 @@ class TestNetwork():
 	def build(self, networkConfig: TestNetworkConfiguration):
 		bar = Bar('Starting Traffic Control', max=networkConfig.len() + 1)
 
-		image = "flavargues/test"
+		image = "flavargues/testerImage"
 		command="/bin/sh"
 
 		topology = networkConfig.topology

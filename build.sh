@@ -1,1 +1,1 @@
-docker build -t f
+docker build -t flavargues/testerimage ./testerImage/
