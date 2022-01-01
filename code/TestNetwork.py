@@ -1,7 +1,9 @@
 #docker run --label "com.docker-tc.limit=1mbps" --label "com.docker-tc.delay=100ms" --label "com.docker-tc.loss=50%" --label "com.docker-tc.duplicate=50%" -it abbey22/traffic-control
+from types import MemberDescriptorType
 from docker import *
 from docker.api import image
 from docker.errors import *
+from docker.types import Mount
 import time
 from progress.bar import Bar
 
@@ -76,8 +78,6 @@ class TestNetworkConfiguration():
 		return self.__labels
 		
 
-			
-
 class TestNetwork():
 	def __init__(self):
 		self.containerList = []
@@ -118,14 +118,29 @@ class TestNetwork():
 				except KeyError:
 					continue
 		
-	def __ensureTrafficControl(self):
-		if self.trafficController == 1:
+	def __ensureTrafficControl(self):		
+		if self.trafficController == 0:
+			
+			mount1 = Mount(target="/var/run/docker.sock", source="/var/run/docker.sock")
+			mount2 = Mount(target="/var/docker-tc", source="/var/docker-tc")
+
+			mounts = list()
+			mounts.append(mount1)
+			mounts.append(mount2)
+			
 			self.trafficController = self.dockerDaemon.containers.create("lukaszlach/docker-tc",
-			name="docker-tc", cap_add=["NET_ADMIN"])
-		
+			name="docker-tc", cap_add=["NET_ADMIN"], network="host",
+			volumes={
+				'/var/run/docker.sock': {'bind': '/var/run/docker.sock', 'mode': 'rw'},
+				'/var/docker-tc': {'bind': '/var/docker-tc', 'mode': 'rw'}
+			})
+			self.trafficController.start()
+			time.sleep(1)
 
 	def build(self, networkConfig: TestNetworkConfiguration):
-		image = "alpineping"
+		bar = Bar('Starting Traffic Control', max=networkConfig.len() + 1)
+
+		image = "flavargues/test"
 		command="/bin/sh"
 
 		topology = networkConfig.topology
@@ -134,20 +149,24 @@ class TestNetwork():
 			self.destroy()
 
 		self.__ensureTrafficControl()
+		bar.next()
+		bar.message = "creating containers"
 
 		if topology == "full":
 			for index, containerName in enumerate(networkConfig._params):
 
 				try:
 					myLabels = networkConfig._labels()[containerName]
+					self.networkList.append(self.dockerDaemon.networks.create("test-net"))
 					newContainer = self.dockerDaemon.containers.create(image=image, command=command,
-						tty=True, detach=True, cap_add=["NET_ADMIN"], name=containerName,
+						tty=True, detach=True, cap_add=["NET_ADMIN"], name=containerName, network="test-net",
 						labels=myLabels)
 					self.containerList.append(newContainer)
 					newContainer.start()
 				except Exception as error:
 					self.destroy()
 					raise
+				bar.next()
 		elif topology == "star":
 			for index, containerName in enumerate(networkConfig._params):
 				try:
@@ -175,8 +194,9 @@ class TestNetwork():
 				except Exception as error:
 					self.destroy()
 					raise
+				bar.next()
 			
-			
+			bar.message = "Preparing IP Table"
 			gateways = dict()
 			center = self.containerList[0]
 			center.reload()
@@ -185,7 +205,8 @@ class TestNetwork():
 				#if network.name == "bridge":
 				#	continue
 				gateways[network.name] = center.attrs['NetworkSettings']['Networks'][network.name]['IPAddress']
-				
+			
+			bar.message = "Configuring containers IP routing"
 			output = list()
 			for edge in self.containerList[1:]:
 				edge.reload()
@@ -195,14 +216,17 @@ class TestNetwork():
 				output.append( edge.exec_run("ip route del default", tty=True) )
 				time.sleep(0.5)
 				output.append( edge.exec_run(f"ip route add default via {myGateway}", tty=True) )
+			
 		
-		#build IP table
+		bar.message = "Building IP table"
+		bar.next()
 		self.IPTable = {}
 		for it in self.containerList:
 			it.reload()
 			itOneNetwork = list(it.attrs['NetworkSettings']['Networks'].keys())[0]
 			itIP = it.attrs['NetworkSettings']['Networks'][itOneNetwork]["IPAddress"]
 			self.IPTable[ str(it.name) ] = ( str(itIP) )
+		bar.finish()
 
 	def _resolve(self, name: str):
 		if name in self.IPTable:
@@ -212,6 +236,9 @@ class TestNetwork():
 
 	def traceroute(self, sender:str, receiver:str):
 		return self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self._resolve(receiver), tty=True)
+
+	def iperf3(self, sender: str, receiver:str):
+		return self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self._resolve(receiver), tty=True)
 
 	def ping(self, sender:str, receiver:str, duration:int = 5):
 
