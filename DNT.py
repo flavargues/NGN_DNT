@@ -283,9 +283,24 @@ class DNT():
 
 	def traceroute(self, sender:str, receiver:str):
 		spinner = Spinner('⌛ Running traceroute')
-		out = self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self.__resolve(receiver), tty=True)
+		answer = self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self.__resolve(receiver), tty=True)
+		output = str(answer.output)
+
+		resultsDict = dict([
+			('destination', re.search('ewma (\d{1,}\.\d{1,})', output).groups()[0] ),
+			('dataSize', )
+
+
+
+
+
+		])
+		
+		feedback = dict([  ('exit_code', answer.exit_code), ('results', resultsDict), ('raw', answer.output)  ])
+		
+
 		spinner.finish()
-		return out
+		return feedback
 
 	def iperf3(self, sender: str, receiver:str):
 		spinner = Spinner('⌛ Running iperf3')
@@ -301,33 +316,29 @@ class DNT():
 
 	def ping(self, sender:str, receiver:str, duration:int = 5):
 		spinner = Spinner('⌛ Running ping')
+		
 		answer = self.dockerDaemon.containers.get(sender).exec_run(f"ping -Aqw {duration} " + self.__resolve(receiver), tty=True)
-		try:
+		output = str(answer.output)
 
-			output = str(answer.output)
+		resultsDict = dict([
+			('destination', re.search('(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', output).group(0)),
+			('dataSize', re.search('\((\d{1,})\) bytes', output).groups()[0]),
 
-			resultsDict = dict([
-				('destination', re.search('(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', output).groups(0)),
-				('dataSize', re.search('\((\d{1,})\) bytes', output).groups(0)),
+			('packetsTransmitted', re.search('(\d{1,}) packets tra', output).groups()[0]),
+			('packetsReceived', re.search('(\d{1,}) re', output).groups()[0]),
+			('packetLoss', re.search('(\d{1,})%', output).group()[0]),
 
-				('packetsTransmitted', re.search('(\d{1,}) packets tra', output).groups(0)),
-				('packetsReceived', re.search('(\d{1,}) packets re', output).groups(0)),
-				('packetLoss', re.search('(\d{1,})%', output).groups(0)),
+			('rtt', re.search('time (\d{1,})ms', output).groups()[0]),
+			('min', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[0]),
+			('avg', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[1]),
+			('max', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[2]),
+			('mdev',re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[3]),
 
-				('rtt', re.search('time (\d{1,})ms', output).groups(0)),
-				('min', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups(0)),
-				('avg', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups(1)),
-				('max', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups(2)),
-				('mdev',re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups(3)),
+			('ipg', re.search('ewma (\d{1,}\.\d{1,})', output).groups()[0]),
+			('ewma', re.search('ewma \d{1,}\.\d{1,}\/(\d{1,}\.\d{1,})', output).groups()[0])
+		])
 
-				('ipg', re.search('ewma (\d{1,}\.\d{1,})', output).groups(0)),
-				('ewma', re.search('ewma \d{1,}\.\d{1,}\/(\d{1,}\.\d{1,})', output).groups(0))
-			])
-
-			feedback = dict([('exit_code', answer.exit_code), ('results', resultsDict)])
-			
-			spinner.finish()
-			return feedback
-		except Exception as err:
-			spinner.finish()
-			return answer, err
+		feedback = dict([  ('exit_code', answer.exit_code), ('results', resultsDict), ('raw', answer.output)  ])
+		
+		spinner.finish()
+		return feedback

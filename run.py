@@ -1,4 +1,4 @@
-from TestNetwork import *
+from DNT import *
 a = DNT()
 a.connect('tcp://127.0.0.1:2375')
 
@@ -15,11 +15,9 @@ configuration = DNTConfiguration(
 
 a.build(configuration)
 
-
-
-print(a.ping("host1", "host2"))
-#print(a.traceroute("host1", "host2"))
-#print(a.iperf3("host1", "host2"))
-#print(a.twamp("host1", "host2"))
+b = a.ping("host1", "host2")
+c = a.traceroute("host1", "host2")
+d = a.iperf3("host1", "host2")
+e = a.twamp("host1", "host2")
 
 a.destroy()
