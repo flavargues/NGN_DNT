@@ -23,7 +23,7 @@ Provides the following test tools:
 
 ```bash
 cd NGN_project
-docker build -t flavargues/testerimage ./testerImage/
+docker build -t flavargues/testerimage ./dockerNetworkTester/
 pip install -r requirements.txt
 ```
 
@@ -66,13 +66,6 @@ a.iperf3("host1", "host2")
 a.twamp("host1", "host2")
 ```
 
-
-## Authors
-
-Me, myself and I
-Not written
-
 ## License
-To be defined
-Not written
 
+This project is under under the X License. The used 
