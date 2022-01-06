@@ -1,4 +1,4 @@
-# NGN_project
+# NGN_DNT
 
 Wrapper around the Docker Engine to deploy containers in a star topology or fully connected. Provides a way to set up traffic control rules to add:
 - bandwidth limit,
@@ -14,33 +14,36 @@ Provides the following test tools:
 - TWAMP (Two-Way Active Measurement Protocol)
 
 ## Software requirements
+Works with traffic control only on Unix systems. Tested successfully on Ubuntu Server 20.04 LTS.
 
 - [Python >= 3](http://docs.python-guide.org/en/latest/starting/installation/)
 - [pip](https://pip.pypa.io/en/stable/installing/)
-- [Docker](https://www.docker.com/products/docker) (Recommended)
+- [Docker](https://www.docker.com/products/docker)
 
 ## Quick Install
 
 ```bash
-cd NGN_project
-docker build -t flavargues/testerimage ./dockerNetworkTester/
+git clone https://github.com/flavargues/NGN_DNT.git
+cd NGN_DNT
+docker build -t flavargues/dockernetworktester ./dockerNetworkTester/
 pip install -r requirements.txt
 ```
-
-In a python3 interactive shell:
+Use the example file or:
+In a python3 interactive shell or in .py file:
 ```python
 from TestNetwork import *
-TestNet = TestNetwork()
-TestNet.connect('tcp://127.0.0.1:2375')
+dockerTestNetwork = DNT()
+dockerTestNetwork.connect()#Or give the socket to your docker daemon (see https://docs.docker.com/engine/reference/commandline/dockerd/)
 
-#your code here
+#Your configuration here
+#Your tests here
 
-a.destroy()
+dockerTestNetwork.destroy()
 ```
+
 
 ### Writing and Building your configuration
 
-Not written
 ```python
 configuration = TestNetworkConfiguration(
     topology="star",
@@ -52,20 +55,23 @@ configuration = TestNetworkConfiguration(
     duplicate=["0%"   ,"0%"    ,"0%"    ,"0%"        ],
     corrupt=  ["0%"   ,"0%"    ,"0%"    ,"0%"        ]
 )
+```
+For further details, refer to the documentation of lukaszlach/docker-tc at https://github.com/lukaszlach/docker-tc#:~:text=Docker%20Traffic%20Control%20recognizes,chosen%20percent%20of%20packets
 
-TestNet.build(configuration)
+This command will build the configuration you have defined. If containers created by another instance are still running, it will refuse to build.
+```python
+dockerTestNetwork.build(configuration)
 ```
 
-Not written
-## Run your tests
+## Writing and Building tests
 
 ````python
-a.ping("host1", "host2")
-a.traceroute("host1", "host2")
-a.iperf3("host1", "host2")
-a.twamp("host1", "host2")
+dockerTestNetwork.ping("host1", "host2")
+dockerTestNetwork.traceroute("host1", "host2")
+dockerTestNetwork.iperf3("host1", "host2")
+dockerTestNetwork.twamp("host1", "host2")
 ```
 
 ## License
 
-This project is under under the X License. The used 
+Licensed under the GPL2 License. Refer to the License file.

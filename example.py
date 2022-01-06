@@ -1,6 +1,6 @@
 from DNT import *
-a = DNT()
-a.connect('tcp://127.0.0.1:2375')
+myInstance = DNT()
+myInstance.connect('tcp://127.0.0.1:2375')
 
 configuration = DNTConfiguration(
 	topology="star",
@@ -13,11 +13,11 @@ configuration = DNTConfiguration(
 	corrupt=  ["0%"   ,"0%"    ,"0%"    ,"0%"        ]
 )
 
-a.build(configuration)
+myInstance.build(configuration)
 
-b = a.ping("host1", "host2")
-c = a.traceroute("host1", "host2")
-d = a.iperf3("host1", "host2")
-e = a.twamp("host1", "host2")
+ping = myInstance.ping("host1", "host2")
+traceroute = myInstance.traceroute("host1", "host2")
+iperf3 = myInstance.iperf3("host1", "host2")
+twamp = myInstance.twamp("host1", "host2")
 
-a.destroy()
+myInstance.destroy()

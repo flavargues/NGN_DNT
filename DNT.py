@@ -1,3 +1,28 @@
+'''NGN_DNT
+
+	Wrapper around the Docker Engine to deploy containers in a star topology or fully connected. Provides a way to set up traffic control rules to add:
+	- bandwidth limit,
+	- delay,
+	- loss,
+	- dup packets,
+	- corrupt packets.
+	Copyright (C) 2022  flavargues @ github.com/flavargues
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	
+	Contact: @flavargues on GitHub'''
 from docker import *
 from docker.errors import *
 from docker.types import Mount
@@ -81,19 +106,24 @@ class DNT():
 		self.networkList = []
 		self.trafficController = 0
 
-		print('WELCOME TO 🐳 DOCKER NETWORK TESTER (DNT)    under MIT License             ')
+		print('WELCOME TO 🐳 DOCKER NETWORK TESTER (DNT)    under GPL2 License             ')
 		print('===========================================================================')
 		print('BUILT ON 🐍 Python3 for the project of NGN class in 🏫 UniTn               ')
 		print('Using :  🟢 github.com/lukaszlach/docker-tc   under MIT License             ')
 		print('         🟢 github.com/emirica/twamp-protocol under GPL-2.0 License         ')
 		print('         🟢 pypi.org/project/progress         under ISC License (ISCL) (ISC)')
 		print('')
+		self.license()
+		print('')
 		print('         ❔ You can use DNT.help() at any moment.')
 
-		
+	def license():
+		print('NGN_DNT version 1, Copyright © 2022 flavargues @ github.com/flavargues')
+		print('NGN_DNT comes with ABSOLUTELY NO WARRANTY; for details execute \'license()\'.')
+		print('This is free software, and you are welcome to redistribute it')
+		print('under certain conditions defined per the GPL2 License. Refer to the License file.')
 
 	def help(self):
-		print('WELCOME TO 🐳 DOCKER NETWORK TESTER (DNT)    under MIT License             ')
 		'''
 		
 		
@@ -119,7 +149,7 @@ class DNT():
 			for unknownContainer in self.dockerDaemon.containers.list():
 				try:
 					unknownContainer.reload()
-					if unknownContainer.attrs['Config']["Labels"]['edu.testNetwork.managed'] == "1":
+					if unknownContainer.attrs['Config']["Labels"]['edu.dockerTestNetwork.managed'] == "1":
 						return True
 				except KeyError:
 					continue
@@ -153,11 +183,12 @@ class DNT():
 			for unknownContainer in self.dockerDaemon.containers.list():
 				try:
 					unknownContainer.reload()
-					if unknownContainer.attrs['Config']["Labels"]['edu.testNetwork.managed'] == "1":
+					if unknownContainer.attrs['Config']["Labels"]['edu.dockerTestNetwork.managed'] == "1":
 						self.containerList.append(unknownContainer)
 						bar.message = '❕ Found other containers'
 				except KeyError:
 					continue
+			
 		if len(self.containerList) > 0:
 			for it in self.containerList:
 				it.remove(force=True)
@@ -196,7 +227,7 @@ class DNT():
 			raise error
 
 		if self.__findInfrastructure():
-			print("There is still an infrastructure running. Consider running destroy().")
+			print("❌ Stopped. There is still an infrastructure running. Consider running destroy().")
 		else:
 
 			bar = Bar('🐳 Starting Traffic Control', max=networkConfig.len() + 2)
@@ -243,7 +274,6 @@ class DNT():
 						__failureOnBuild(error, bar)
 					bar.next()
 				
-				bar.message = "📝 Building IP Table"
 				gateways = dict()
 				center = self.containerList[0]
 				center.reload()
@@ -251,7 +281,6 @@ class DNT():
 					network.reload()
 					gateways[network.name] = center.attrs['NetworkSettings']['Networks'][network.name]['IPAddress']
 				
-				bar.message = "🛠 Configuring containers IP routing"
 				output = list()
 				for edge in self.containerList[1:]:
 					edge.reload()
@@ -263,14 +292,14 @@ class DNT():
 					output.append( edge.exec_run(f"ip route add default via {myGateway}", tty=True) )
 				
 			
-			bar.message = "📝 Building Host Table"
-			bar.next()
+			bar.message = "✔ Infrastructure built."
 			self.IPTable = {}
 			for it in self.containerList:
 				it.reload()
 				itOneNetwork = list(it.attrs['NetworkSettings']['Networks'].keys())[0]
 				itIP = it.attrs['NetworkSettings']['Networks'][itOneNetwork]["IPAddress"]
 				self.IPTable[ str(it.name) ] = ( str(itIP) )
+			bar.next()
 			bar.finish()
 
 		
@@ -284,23 +313,37 @@ class DNT():
 	def traceroute(self, sender:str, receiver:str):
 		spinner = Spinner('⌛ Running traceroute')
 		answer = self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self.__resolve(receiver), tty=True)
+		
 		output = str(answer.output)
-
-		resultsDict = dict([
-			('destination', re.search('ewma (\d{1,}\.\d{1,})', output).groups()[0] ),
-			('dataSize', )
-
-
-
-
-
-		])
-		
-		feedback = dict([  ('exit_code', answer.exit_code), ('results', resultsDict), ('raw', answer.output)  ])
-		
-
-		spinner.finish()
-		return feedback
+		try:
+			routes = re.search('\\n (\d+  .*)\\r', output).groups()[0].split('\\r\\n')
+			roads = list()
+			for road in routes:
+				roads.append(road.split())
+			
+			hops = list()
+			for road in routes.groups():
+				hops.append(dict([
+					('hop', roads[0]),
+					('host.interface', roads[1]),
+					('target', roads[2].strip('(').strip(')')),
+					('probe1', roads[3]),
+					('probe2', roads[5]),
+					('probe3', roads[7])
+				]))
+				
+			resultsDict = dict([
+				('destination', re.search('(\d{1,}\.\d{1,}\.\d{1,}\.\d{1,})', output).groups()[0]),
+				('dataSize', re.search('(\d{1,}) byte', output).groups()[0]),
+				('hop', hops)
+			])
+			feedback = dict([  ('exit_code', answer.exit_code), ('results', resultsDict), ('raw', answer.output)  ])
+			
+			spinner.finish()
+			return feedback
+		except:
+			spinner.finish()
+			return output
 
 	def iperf3(self, sender: str, receiver:str):
 		spinner = Spinner('⌛ Running iperf3')
