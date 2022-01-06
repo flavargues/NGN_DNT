@@ -28,6 +28,7 @@ cd NGN_DNT
 docker build -t flavargues/dockernetworktester ./dockerNetworkTester/
 pip install -r requirements.txt
 ```
+
 Use the example file or:
 In a python3 interactive shell or in .py file:
 ```python
@@ -56,6 +57,23 @@ configuration = TestNetworkConfiguration(
     corrupt=  ["0%"   ,"0%"    ,"0%"    ,"0%"        ]
 )
 ```
+NGN_DNT recognizes the following labels:
+From docker-tc:
+* `com.docker-tc.enabled` - when set to `True` the container network rules will be set automatically, any other value or if the label is not specified - the container will be ignored
+*  `com.docker-tc.limit` - bandwidth or rate limit for the container, accepts a floating point number, followed by a unit, or a percentage value of the device's speed (e.g. 70.5%). Following units are recognized:
+    * `bit`, `kbit`, `mbit`, `gbit`, `tbit`
+    * `bps`, `kbps`, `mbps`, `gbps`, `tbps`
+    * to specify in IEC units, replace the SI prefix (k-, m-, g-, t-) with IEC prefix (ki-, mi-, gi- and ti-) respectively
+* `com.docker-tc.delay` - length of time packets will be delayed, accepts a floating point number followed by an optional unit:
+    * `s`, `sec`, `secs`
+    * `ms`, `msec`, `msecs`
+    * `us`, `usec`, `usecs` or a bare number
+* `com.docker-tc.loss` - percentage loss probability to the packets outgoing from the chosen network interface
+* `com.docker-tc.duplicate` - percentage value of network packets to be duplicated before queueing
+* `com.docker-tc.corrupt` - emulation of random noise introducing an error in a random position for a chosen percent of packets
+
+> Read the [tc command manual](http://man7.org/linux/man-pages/man8/tc.8.html) to get detailed information about parameter types and possible values.
+
 For further details, refer to the documentation of lukaszlach/docker-tc at https://github.com/lukaszlach/docker-tc#:~:text=Docker%20Traffic%20Control%20recognizes,chosen%20percent%20of%20packets
 
 This command will build the configuration you have defined. If containers created by another instance are still running, it will refuse to build.
