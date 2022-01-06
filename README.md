@@ -98,18 +98,18 @@ dockerTestNetwork.ping("host1", "host2")
 Returns a python.dict() built as such:
 * 'exit_code'
 * 'results'
- * 'destination': ip of target
- * 'dataSize': number of bytes in each packet
- * 'packetsTransmitted'
- * 'packetsReceived'
- * 'packetLoss'
- * 'rtt': Round-Trip-Time in ms
- * 'min': minimum RTT of all packets in ms
- * 'avg': average ''
- * 'max': maximum ''
- * 'mdev': Maximum Deviation ''
- * 'ipg': InterPacket Gap ''
- * 'ewma': Exponentially Weighted Moving Average ''
+  * 'destination': ip of target
+  * 'dataSize': number of bytes in each packet
+  * 'packetsTransmitted'
+  * 'packetsReceived'
+  * 'packetLoss'
+  * 'rtt': Round-Trip-Time in ms
+  * 'min': minimum RTT of all packets in ms
+  * 'avg': average ''
+  * 'max': maximum ''
+  * 'mdev': Maximum Deviation ''
+  * 'ipg': InterPacket Gap ''
+  * 'ewma': Exponentially Weighted Moving Average ''
 * 'raw': non parsed output of exec_run
 
 ````python
