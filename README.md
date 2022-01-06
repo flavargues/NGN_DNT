@@ -22,6 +22,11 @@ Works with traffic control only on Unix systems. Tested successfully on Ubuntu S
 
 ## Quick Install
 
+**********
+Disclaimer
+**********
+WE DO NOT GUARANTEE THAT THIS PROGRAM WILL NOT FUCK UP YOUR CONTAINERS ON YOUR SYSTEM. PLEASE SAVE ALL YOUR CONTAINERS BEFORE USING THIS SOFTWARE. You can also use Docker-in-Docker with the docker-compose file in /util, with no more guarantee than previously.
+
 ```bash
 git clone https://github.com/flavargues/NGN_DNT.git
 cd NGN_DNT
