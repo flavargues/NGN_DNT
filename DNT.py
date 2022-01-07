@@ -113,20 +113,50 @@ class DNT():
 		print('         🟢 github.com/emirica/twamp-protocol under GPL-2.0 License         ')
 		print('         🟢 pypi.org/project/progress         under ISC License (ISCL) (ISC)')
 		print('')
-		self.license()
+		print('🔑 License')
+		print('NGN_DNT version 1, Copyright © 2022 flavargues @ github.com/flavargues')
+		print('NGN_DNT comes with ABSOLUTELY NO WARRANTY; for details see license file.')
+		print('This is free software, and you are welcome to redistribute it')
+		print('under certain conditions defined per the GPL2 License. Refer to the License file.')
 		print('')
 		print('         ❔ You can use DNT.help() at any moment.')
+		print('')
 
-	def license():
+	def license(self):
+		print('🔑 License')
 		print('NGN_DNT version 1, Copyright © 2022 flavargues @ github.com/flavargues')
-		print('NGN_DNT comes with ABSOLUTELY NO WARRANTY; for details execute \'license()\'.')
+		print('NGN_DNT comes with ABSOLUTELY NO WARRANTY; for details see license file.')
 		print('This is free software, and you are welcome to redistribute it')
 		print('under certain conditions defined per the GPL2 License. Refer to the License file.')
 
-	def help(self):
+	def help(self, function:str ="all"):
+		if function in ['all', 'ping']:
+			print('ping 	   clientHostName serverHostName durationInSec=5')
+			print('	Returns a python.dict() built as such:')
+			print('	* \'exit_code\'')
+			print('	* \'results\'')
+			print('		* \'destination\': ip of target')
+			print('		* \'dataSize\': number of bytes in each packet')
+			print('		* \'packetsTransmitted\'')
+			print('		* \'packetsReceived\'')
+			print('		* \'packetLoss\'')
+			print('		* \'rtt\': Round-Trip-Time in ms')
+			print('		* \'min\': minimum RTT of all packets in ms')
+			print('		* \'avg\': average ''')
+			print('		* \'max\': maximum ''')
+			print('		* \'mdev\': Maximum Deviation ''')
+			print('		* \'ipg\': InterPacket Gap ''')
+			print('		* \'ewma\': Exponentially Weighted Moving Average')
+			print('	* \'raw\': non parsed output of exec_run')
+			print()
+
 		'''
-		
-		
+		traceroute clientHostName serverHostName
+
+		iperf3     clientHostName serverHostName
+
+		twamp      clientHostName serverHostName
+
 		
 		'''
 		
@@ -301,87 +331,79 @@ class DNT():
 				self.IPTable[ str(it.name) ] = ( str(itIP) )
 			bar.next()
 			bar.finish()
-
 		
-
 	def __resolve(self, name: str):
 		if name in self.IPTable:
 			return self.IPTable[name]
 		else:
 			raise KeyError(name)
 
+	def ping(self, sender:str, receiver:str, duration:int = 5):
+		
+		answer = self.dockerDaemon.containers.get(sender).exec_run(f"ping -Aqw {duration} " + self.__resolve(receiver), tty=True)
+		output = str(answer.output)
+		try:
+			resultsDict = dict([
+				('destination', re.search('(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', output).group(0)),
+				('dataSize', re.search('\((\d{1,})\) bytes', output).groups()[0]),
+
+				('packetsTransmitted', re.search('(\d{1,}) packets tra', output).groups()[0]),
+				('packetsReceived', re.search('(\d{1,}) re', output).groups()[0]),
+				('packetLoss', re.search('(\d{1,})%', output).group()[0]),
+
+				('rtt', re.search('time (\d{1,})ms', output).groups()[0]),
+				('min', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[0]),
+				('avg', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[1]),
+				('max', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[2]),
+				('mdev',re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[3]),
+
+				('ipg', re.search('ewma (\d{1,}\.\d{1,})', output).groups()[0]),
+				('ewma', re.search('ewma \d{1,}\.\d{1,}\/(\d{1,}\.\d{1,})', output).groups()[0])
+			])
+
+			feedback = dict([  ('exit_code', answer.exit_code), ('results', resultsDict), ('raw', answer.output)  ])
+			
+			return feedback
+		except Exception as err:
+			print('Parsing failed. Returning raw data.')
+			return answer, err
+
 	def traceroute(self, sender:str, receiver:str):
-		spinner = Spinner('⌛ Running traceroute')
 		answer = self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self.__resolve(receiver), tty=True)
 		
 		output = str(answer.output)
 		try:
-			routes = re.search('\\n (\d+  .*)\\r', output).groups()[0].split('\\r\\n')
-			roads = list()
-			for road in routes:
-				roads.append(road.split())
-			
+			routes = output.split('\\r\\n')
+			routes.pop()
+
 			hops = list()
-			for road in routes.groups():
+			for trace in routes[1:]:
 				hops.append(dict([
-					('hop', roads[0]),
-					('host.interface', roads[1]),
-					('target', roads[2].strip('(').strip(')')),
-					('probe1', roads[3]),
-					('probe2', roads[5]),
-					('probe3', roads[7])
+					('hopNumber', re.search('^ (\d+)', trace).groups()[0]),
+					('host.Interface', re.search('(\w\S+)', trace).groups()),
+					('targetIP', re.search('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', trace).group()),
+					('hop1', re.findall('(\d+\.\d+) ms', trace)[0]),
+					('hop2', re.findall('(\d+\.\d+) ms', trace)[2]),
+					('hop3', re.findall('(\d+\.\d+) ms', trace)[1])
 				]))
+				
 				
 			resultsDict = dict([
 				('destination', re.search('(\d{1,}\.\d{1,}\.\d{1,}\.\d{1,})', output).groups()[0]),
 				('dataSize', re.search('(\d{1,}) byte', output).groups()[0]),
-				('hop', hops)
+				('hops', hops)
 			])
 			feedback = dict([  ('exit_code', answer.exit_code), ('results', resultsDict), ('raw', answer.output)  ])
 			
-			spinner.finish()
 			return feedback
-		except:
-			spinner.finish()
-			return output
+		except Exception as err:
+			print('Parsing failed. Returning raw data.')
+			return answer, err
 
 	def iperf3(self, sender: str, receiver:str):
-		spinner = Spinner('⌛ Running iperf3')
 		out = self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
-		spinner.finish()
 		return out
 
 	def twamp(self, sender: str, receiver:str, test_sessions:int = 2, test_sess_msgs:int = 2):
-		spinner = Spinner('⌛ Running TWAMP')
 		out = self.dockerDaemon.containers.get(sender).exec_run(f"/app/client -p 8000 -n {test_sessions} -m {test_sess_msgs} -s " + self.__resolve(receiver), tty=True)
-		spinner.finish()
 		return out
-
-	def ping(self, sender:str, receiver:str, duration:int = 5):
-		spinner = Spinner('⌛ Running ping')
-		
-		answer = self.dockerDaemon.containers.get(sender).exec_run(f"ping -Aqw {duration} " + self.__resolve(receiver), tty=True)
-		output = str(answer.output)
-
-		resultsDict = dict([
-			('destination', re.search('(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', output).group(0)),
-			('dataSize', re.search('\((\d{1,})\) bytes', output).groups()[0]),
-
-			('packetsTransmitted', re.search('(\d{1,}) packets tra', output).groups()[0]),
-			('packetsReceived', re.search('(\d{1,}) re', output).groups()[0]),
-			('packetLoss', re.search('(\d{1,})%', output).group()[0]),
-
-			('rtt', re.search('time (\d{1,})ms', output).groups()[0]),
-			('min', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[0]),
-			('avg', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[1]),
-			('max', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[2]),
-			('mdev',re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[3]),
-
-			('ipg', re.search('ewma (\d{1,}\.\d{1,})', output).groups()[0]),
-			('ewma', re.search('ewma \d{1,}\.\d{1,}\/(\d{1,}\.\d{1,})', output).groups()[0])
-		])
-
-		feedback = dict([  ('exit_code', answer.exit_code), ('results', resultsDict), ('raw', answer.output)  ])
-		
-		spinner.finish()
-		return feedback
