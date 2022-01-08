@@ -166,12 +166,12 @@ class DNT():
 		try:
 			newDaemon = DockerClient(base_url=dockerDaemon)
 			if newDaemon.ping():
-				print("Connected to docker daemon.")
+				print("🐳Connected to docker daemon.")
 				self.dockerDaemon = newDaemon
 			else:
 				raise Exception("Daemon doesn't ping back.")
 		except Exception:
-			print(f"NOT connected to docker daemon at {dockerDaemon}.")
+			print(f"❌NOT connected to docker daemon at {dockerDaemon}.")
 			print("You can use docker-in-docker with docker-compose up -d and enter the IP address:2376 of the container.")
 
 	def __findInfrastructure(self):

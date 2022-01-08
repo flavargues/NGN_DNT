@@ -21,27 +21,37 @@ Works with traffic control only on Unix systems. Tested successfully on Ubuntu S
 - [Docker](https://www.docker.com/products/docker)
 
 ## DISCLAIMER
-WE DO NOT GUARANTEE THAT THIS PROGRAM WILL NOT FUCK UP YOUR CONTAINERS ON YOUR SYSTEM. PLEASE SAVE ALL YOUR CONTAINERS BEFORE USING THIS SOFTWARE. You can also use Docker-in-Docker with the docker-compose file in /util, with no more guarantee than stated previously.
+WE DO NOT GUARANTEE THAT THIS PROGRAM WILL NOT MESS UP YOUR CONTAINERS ON YOUR SYSTEM. PLEASE SAVE ALL YOUR CONTAINERS BEFORE USING THIS SOFTWARE. You can also use Docker-in-Docker with the docker-compose file in /util, with no more guarantee than stated previously.
 
 ## Quick Install
 ```bash
 git clone https://github.com/flavargues/NGN_DNT.git
 cd NGN_DNT
-docker build -t flavargues/dockernetworktester ./dockerNetworkTester/
+docker build -t flavargues/dockernetworktester ./dockerImage/
 pip install -r requirements.txt
 ```
 
-Use the example file or:
-In a python3 interactive shell or in .py file:
+### Usage
+You may run the project in a .py file with all the tests written  or in a jupyter notebook (see /example files).
+You can also run it in a python interactive shell.
+
+Import the DNT class and instiantiate one.
 ```python
 from TestNetwork import *
 dockerTestNetwork = DNT()
+```
+
+Connect to instance to the docker daemon. By default, it connects to the unix socket at unix:///var/run/docker.sock.
+```python
 dockerTestNetwork.connect()
-#Or give the socket to your docker daemon (see https://docs.docker.com/engine/reference/commandline/dockerd/)
+```
+You can also give the connect() function the socket of the docker daemon as a string. 
 
-#Your configuration here
-#Your tests here
+**Your configuration here (see below)**
+**Your tests here (see below)**
 
+Don't forget to destroy your infrastructure by running this function ! It will remove the containers and networks created by the program.
+```python
 dockerTestNetwork.destroy()
 ```
 
@@ -61,6 +71,9 @@ configuration = TestNetworkConfiguration(
 )
 ```
 NGN_DNT recognizes the following labels:
+* `topology` - the topology to be created:
+    * `star`: first host defined will be in the center, the others will be connected only to the center.
+    * `full`: all nodes are connected to the same network.
 > excerpt from lukaszlach/docker-tc at https://github.com/lukaszlach/docker-tc
 * `com.docker-tc.enabled` - when set to `True` the container network rules will be set automatically, any other value or if the label is not specified - the container will be ignored
 *  `com.docker-tc.limit` - bandwidth or rate limit for the container, accepts a floating point number, followed by a unit, or a percentage value of the device's speed (e.g. 70.5%). Following units are recognized:
