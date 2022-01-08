@@ -1,7 +1,7 @@
 ## Licensed under the GPL2 License. Refer to the License file.
 from DNT import *
 myInstance = DNT()
-myInstance.connect('tcp://127.0.0.1:2375')
+myInstance.connect()
 
 configuration = DNTConfiguration(
 	topology="star",

@@ -102,11 +102,11 @@ class DNTConfiguration():
 
 class DNT():
 	def __init__(self):
-		self.containerList = []
-		self.networkList = []
-		self.trafficController = 0
+		self.__containerList = []
+		self.__networkList = []
+		self.__trafficController = 0
 
-		print('WELCOME TO 🐳 DOCKER NETWORK TESTER (DNT)    under GPL2 License             ')
+		print('WELCOME TO 🐳 DOCKER NETWORK TESTER (DNT)     under GPL2 License             ')
 		print('===========================================================================')
 		print('BUILT ON 🐍 Python3 for the project of NGN class in 🏫 UniTn               ')
 		print('Using :  🟢 github.com/lukaszlach/docker-tc   under MIT License             ')
@@ -114,23 +114,23 @@ class DNT():
 		print('         🟢 pypi.org/project/progress         under ISC License (ISCL) (ISC)')
 		print('')
 		print('🔑 License')
-		print('NGN_DNT version 1, Copyright © 2022 flavargues @ github.com/flavargues')
+		print('NGN_DNT, Copyright © 2022 flavargues @ github.com/flavargues')
 		print('NGN_DNT comes with ABSOLUTELY NO WARRANTY; for details see license file.')
 		print('This is free software, and you are welcome to redistribute it')
-		print('under certain conditions defined per the GPL2 License. Refer to the License file.')
+		print('under certain conditions defined per the GPL2 License.')
 		print('')
 		print('         ❔ You can use DNT.help() at any moment.')
 		print('')
 
 	def license(self):
 		print('🔑 License')
-		print('NGN_DNT version 1, Copyright © 2022 flavargues @ github.com/flavargues')
+		print('NGN_DNT, Copyright © 2022 flavargues @ github.com/flavargues')
 		print('NGN_DNT comes with ABSOLUTELY NO WARRANTY; for details see license file.')
 		print('This is free software, and you are welcome to redistribute it')
-		print('under certain conditions defined per the GPL2 License. Refer to the License file.')
+		print('under certain conditions defined per the GPL2 License.')
 
-	def help(self, function:str ="all"):
-		if function in ['all', 'ping']:
+	def help(self, helpOn:str ="all"):
+		if helpOn in ['all', 'ping']:
 			print('ping 	   clientHostName serverHostName durationInSec=5')
 			print('	Returns a python.dict() built as such:')
 			print('	* \'exit_code\'')
@@ -186,25 +186,25 @@ class DNT():
 		return False
 
 	def destroy(self):
-		bar = Bar('🐳 Removing containers', max=len(self.containerList)+3)
+		bar = Bar('🐳 Removing containers', max=len(self.__containerList)+3)
 
-		for it in self.containerList:
+		for it in self.__containerList:
 			try:
 				it.remove(force=True)
 				bar.next()
 			except Exception:
 				raise
-		self.containerList = []
+		self.__containerList = []
 
 		bar.message = '🐳 Removing Traffic Control container'
-		if self.trafficController != 0:
-			self.trafficController.remove(force=True)
-		self.trafficController = 0
+		if self.__trafficController != 0:
+			self.__trafficController.remove(force=True)
+		self.__trafficController = 0
 		bar.next()
 
 		bar.message = '📡 Removing network'
 		self.dockerDaemon.networks.prune()
-		self.networkList = []
+		self.__networkList = []
 		bar.next()
 
 		
@@ -214,13 +214,13 @@ class DNT():
 				try:
 					unknownContainer.reload()
 					if unknownContainer.attrs['Config']["Labels"]['edu.dockerTestNetwork.managed'] == "1":
-						self.containerList.append(unknownContainer)
+						self.__containerList.append(unknownContainer)
 						bar.message = '❕ Found other containers'
 				except KeyError:
 					continue
 			
-		if len(self.containerList) > 0:
-			for it in self.containerList:
+		if len(self.__containerList) > 0:
+			for it in self.__containerList:
 				it.remove(force=True)
 
 		bar.message = '✔ Infrastructure destroyed.'
@@ -228,7 +228,7 @@ class DNT():
 		bar.finish()
 		
 	def __ensureTrafficControl(self):		
-		if self.trafficController == 0:
+		if self.__trafficController == 0:
 			
 			mount1 = Mount(target="/var/run/docker.sock", source="/var/run/docker.sock")
 			mount2 = Mount(target="/var/docker-tc", source="/var/docker-tc")
@@ -237,13 +237,13 @@ class DNT():
 			mounts.append(mount1)
 			mounts.append(mount2)
 			
-			self.trafficController = self.dockerDaemon.containers.create("lukaszlach/docker-tc",
+			self.__trafficController = self.dockerDaemon.containers.create("lukaszlach/docker-tc",
 			name="docker-tc", cap_add=["NET_ADMIN"], network="host",
 			volumes={
 				'/var/run/docker.sock': {'bind': '/var/run/docker.sock', 'mode': 'rw'},
 				'/var/docker-tc': {'bind': '/var/docker-tc', 'mode': 'rw'}
 			})
-			self.trafficController.start()
+			self.__trafficController.start()
 			time.sleep(1)
 
 	def build(self, networkConfig: DNTConfiguration):
@@ -270,11 +270,11 @@ class DNT():
 
 					try:
 						myLabels = networkConfig._labels()[containerName]
-						self.networkList.append(self.dockerDaemon.networks.create("test-net"))
+						self.__networkList.append(self.dockerDaemon.networks.create("test-net"))
 						newContainer = self.dockerDaemon.containers.create(image=image, command=command,
 							tty=True, detach=True, cap_add=["NET_ADMIN"], name=containerName, network="test-net",
 							labels=myLabels)
-						self.containerList.append(newContainer)
+						self.__containerList.append(newContainer)
 						newContainer.start()
 					except Exception as error:
 						__failureOnBuild(error, bar)
@@ -284,35 +284,35 @@ class DNT():
 					try:
 						if index == 0:
 							for j in range(1, networkConfig.len()):
-								self.networkList.append(self.dockerDaemon.networks.create(f"b0-{j}"))
+								self.__networkList.append(self.dockerDaemon.networks.create(f"b0-{j}"))
 
 							newContainer = self.dockerDaemon.containers.create(image=image, command=command,
 								tty=True, detach=True, cap_add=["NET_ADMIN"], name=containerName,
 								labels=networkConfig._labels()[containerName])
-							self.containerList.append(newContainer)
+							self.__containerList.append(newContainer)
 
-							for it in self.networkList:
+							for it in self.__networkList:
 								it.connect(networkConfig.names()[0])
 							
 						else:
 							newContainer = self.dockerDaemon.containers.create(image=image, command=command,
 								tty=True, detach=True, cap_add=["NET_ADMIN"], name=containerName,
 								labels=networkConfig._labels()[containerName], network=f"b0-{index}")
-							self.containerList.append(newContainer)
+							self.__containerList.append(newContainer)
 						newContainer.start()
 					except Exception as error:
 						__failureOnBuild(error, bar)
 					bar.next()
 				
 				gateways = dict()
-				center = self.containerList[0]
+				center = self.__containerList[0]
 				center.reload()
-				for network in self.networkList:
+				for network in self.__networkList:
 					network.reload()
 					gateways[network.name] = center.attrs['NetworkSettings']['Networks'][network.name]['IPAddress']
 				
 				output = list()
-				for edge in self.containerList[1:]:
+				for edge in self.__containerList[1:]:
 					edge.reload()
 					myNetwork = list(edge.attrs['NetworkSettings']['Networks'])[0]
 					myGateway = gateways[myNetwork]
@@ -323,23 +323,23 @@ class DNT():
 				
 			
 			bar.message = "✔ Infrastructure built."
-			self.IPTable = {}
-			for it in self.containerList:
+			self.__IPTable = {}
+			for it in self.__containerList:
 				it.reload()
 				itOneNetwork = list(it.attrs['NetworkSettings']['Networks'].keys())[0]
 				itIP = it.attrs['NetworkSettings']['Networks'][itOneNetwork]["IPAddress"]
-				self.IPTable[ str(it.name) ] = ( str(itIP) )
+				self.__IPTable[ str(it.name) ] = ( str(itIP) )
 			bar.next()
 			bar.finish()
 		
 	def __resolve(self, name: str):
-		if name in self.IPTable:
-			return self.IPTable[name]
+		if name in self.__IPTable:
+			return self.__IPTable[name]
 		else:
 			raise KeyError(name)
 
 	def ping(self, sender:str, receiver:str, duration:int = 5):
-		
+		print('⌛ Running PING')
 		answer = self.dockerDaemon.containers.get(sender).exec_run(f"ping -Aqw {duration} " + self.__resolve(receiver), tty=True)
 		output = str(answer.output)
 		try:
@@ -349,7 +349,7 @@ class DNT():
 
 				('packetsTransmitted', re.search('(\d{1,}) packets tra', output).groups()[0]),
 				('packetsReceived', re.search('(\d{1,}) re', output).groups()[0]),
-				('packetLoss', re.search('(\d{1,})%', output).group()[0]),
+				('packetLoss', re.search('(\S+)%', output).group()[0]),
 
 				('rtt', re.search('time (\d{1,})ms', output).groups()[0]),
 				('min', re.search('mdev = (\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})\/(\d{1,}\.\d{1,})', output).groups()[0]),
@@ -369,6 +369,7 @@ class DNT():
 			return answer, err
 
 	def traceroute(self, sender:str, receiver:str):
+		print('⌛ Running traceroute')
 		answer = self.dockerDaemon.containers.get(sender).exec_run("traceroute " + self.__resolve(receiver), tty=True)
 		
 		output = str(answer.output)
@@ -401,9 +402,11 @@ class DNT():
 			return answer, err
 
 	def iperf3(self, sender: str, receiver:str):
+		print('⌛ Running iperf3')
 		out = self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
 		return out
 
 	def twamp(self, sender: str, receiver:str, test_sessions:int = 2, test_sess_msgs:int = 2):
+		print('⌛ Running TWAMP')
 		out = self.dockerDaemon.containers.get(sender).exec_run(f"/app/client -p 8000 -n {test_sessions} -m {test_sess_msgs} -s " + self.__resolve(receiver), tty=True)
 		return out
