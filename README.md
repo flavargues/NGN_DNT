@@ -55,7 +55,6 @@ Don't forget to destroy your infrastructure by running this function ! It will r
 dockerTestNetwork.destroy()
 ```
 
-
 ### Writing and Building your configuration
 
 ```python
@@ -74,19 +73,20 @@ NGN_DNT recognizes the following labels:
 * `topology` - the topology to be created:
     * `star`: first host defined will be in the center, the others will be connected only to the center.
     * `full`: all nodes are connected to the same network.
-> excerpt from lukaszlach/docker-tc at https://github.com/lukaszlach/docker-tc
-* `com.docker-tc.enabled` - when set to `True` the container network rules will be set automatically, any other value or if the label is not specified - the container will be ignored
-*  `com.docker-tc.limit` - bandwidth or rate limit for the container, accepts a floating point number, followed by a unit, or a percentage value of the device's speed (e.g. 70.5%). Following units are recognized:
+* `names`: any valid str()
+> EDITED excerpt from lukaszlach/docker-tc at https://github.com/lukaszlach/docker-tc
+* `throttled` - when set to `True` the container network rules will be set automatically, any other value or if the label is not specified - the container will be ignored
+*  `bandwidth` - bandwidth or rate limit for the container, accepts a floating point number, followed by a unit, or a percentage value of the device's speed (e.g. 70.5%). Following units are recognized:
     * `bit`, `kbit`, `mbit`, `gbit`, `tbit`
     * `bps`, `kbps`, `mbps`, `gbps`, `tbps`
     * to specify in IEC units, replace the SI prefix (k-, m-, g-, t-) with IEC prefix (ki-, mi-, gi- and ti-) respectively
-* `com.docker-tc.delay` - length of time packets will be delayed, accepts a floating point number followed by an optional unit:
+* `delay` - length of time packets will be delayed, accepts a floating point number followed by an optional unit:
     * `s`, `sec`, `secs`
     * `ms`, `msec`, `msecs`
     * `us`, `usec`, `usecs` or a bare number
-* `com.docker-tc.loss` - percentage loss probability to the packets outgoing from the chosen network interface
-* `com.docker-tc.duplicate` - percentage value of network packets to be duplicated before queueing
-* `com.docker-tc.corrupt` - emulation of random noise introducing an error in a random position for a chosen percent of packets
+* `loss` - percentage loss probability to the packets outgoing from the chosen network interface
+* `duplicate` - percentage value of network packets to be duplicated before queueing
+* `corrupt` - emulation of random noise introducing an error in a random position for a chosen percent of packets
 
 > Read the [tc command manual](http://man7.org/linux/man-pages/man8/tc.8.html) to get detailed information about parameter types and possible values.
 
