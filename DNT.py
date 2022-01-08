@@ -365,7 +365,7 @@ class DNT():
 			
 			return feedback
 		except Exception as err:
-			print('Parsing failed. Returning raw data.')
+			print('❕ Parsing failed. Returning raw data.')
 			return answer, err
 
 	def traceroute(self, sender:str, receiver:str):
@@ -376,19 +376,31 @@ class DNT():
 		try:
 			routes = output.split('\\r\\n')
 			routes.pop()
+			routes.pop(0)
 
 			hops = list()
-			for trace in routes[1:]:
+			for trace in routes:
+				try:
+					hop1 = re.findall('(\d+\.\d+|\*) ms', trace)[0]
+				except:
+					hop1 = ''
+				try:
+					hop2 = re.findall('(\d+\.\d+|\*) ms', trace)[1]
+				except:
+					hop2 = ''
+				try:
+					hop3 = re.findall('(\d+\.\d+|\*) ms', trace)[2]
+				except:
+					hop3 = ''
 				hops.append(dict([
 					('hopNumber', re.search('^ (\d+)', trace).groups()[0]),
-					('host.Interface', re.search('(\w\S+)', trace).groups()),
+					('host.Interface', re.search('(\w\S+|\*)', trace).groups()),
 					('targetIP', re.search('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', trace).group()),
-					('hop1', re.findall('(\d+\.\d+) ms', trace)[0]),
-					('hop2', re.findall('(\d+\.\d+) ms', trace)[2]),
-					('hop3', re.findall('(\d+\.\d+) ms', trace)[1])
+					('hop1', hop1),
+					('hop2', hop2),
+					('hop3', hop3)
 				]))
-				
-				
+
 			resultsDict = dict([
 				('destination', re.search('(\d{1,}\.\d{1,}\.\d{1,}\.\d{1,})', output).groups()[0]),
 				('dataSize', re.search('(\d{1,}) byte', output).groups()[0]),
@@ -398,7 +410,7 @@ class DNT():
 			
 			return feedback
 		except Exception as err:
-			print('Parsing failed. Returning raw data.')
+			print('❕ Parsing failed. Returning raw data.')
 			return answer, err
 
 	def iperf3(self, sender: str, receiver:str):
