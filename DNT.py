@@ -415,8 +415,39 @@ class DNT():
 
 	def iperf3(self, sender: str, receiver:str):
 		print('⌛ Running iperf3')
-		out = self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
-		return out
+		answer = self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
+		output = str(answer)
+		lines = output.split('\r\n')
+
+		while "- - - " not in lines[0]:
+			lines.pop(0)
+		lines.pop(0)
+		lines.pop(0)
+		lines.remove('iperf Done.')
+		lines.remove('')
+		lines.remove('')
+		print(lines)
+
+		steps = list()
+		for line in lines:
+			role = re.findall('(sender|receiver)', line)[0]
+			interval = re.findall('\]\s+(.+  sec)', line)[0]
+			transfer = re.findall('(\d+)\s+\wBytes', line)[0]
+			bitrate = re.findall('(\d+)\s+\w+bits', line)[0]
+			try:
+				retr = re.findall('\/sec\s+(\d+)', line)[0]
+			except IndexError:
+				retr = ''
+
+			list.append([
+				('role', role),
+				('interval', interval),
+				('transfer', transfer),
+				('bitrate', bitrate),
+				('retries', retr)
+			])
+
+		feedback = dict([  ('exit_code', answer.exit_code), ('results', steps), ('raw', answer.output)  ])
 
 	def twamp(self, sender: str, receiver:str, test_sessions:int = 2, test_sess_msgs:int = 2):
 		print('⌛ Running TWAMP')
