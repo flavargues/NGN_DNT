@@ -146,12 +146,21 @@ Returns a python.dict() built as such:
 ````python
 dockerTestNetwork.iperf3("host1", "host2")
 ````
-> WIP
+Returns a python.dict() built as such:
+* exit_code
+* steps : list()
+  * role
+  * intervak
+  * trasnfer
+  * bitrate
+  * retries
+* raw: non parsed output of exec_run
 
 ````python
 dockerTestNetwork.twamp("host1", "host2")
 ````
-> WIP
+The output of TWAMP is too unpredictable, parsing is too difficult and will not bring value. It will not be implemented.  
+All parsings are dependent on a predictable output of the tests. If tests fail or return a non predictable output, except the parsing to not be done and receive the raw output.  
 
 ## License
 

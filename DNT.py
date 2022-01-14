@@ -416,8 +416,8 @@ class DNT():
 	def iperf3(self, sender: str, receiver:str):
 		print('⌛ Running iperf3')
 		answer = self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
-		output = str(answer)
-		lines = output.split('\r\n')
+		output = str(answer.output)
+		lines = output.split('\\r\\n')
 
 		while "- - - " not in lines[0]:
 			lines.pop(0)
@@ -425,8 +425,8 @@ class DNT():
 		lines.pop(0)
 		lines.remove('iperf Done.')
 		lines.remove('')
-		lines.remove('')
-		print(lines)
+		lines.remove('\'')
+		
 
 		steps = list()
 		for line in lines:
@@ -439,13 +439,13 @@ class DNT():
 			except IndexError:
 				retr = ''
 
-			list.append([
+			steps.append([[
 				('role', role),
 				('interval', interval),
 				('transfer', transfer),
 				('bitrate', bitrate),
 				('retries', retr)
-			])
+			]])
 
 		feedback = dict([  ('exit_code', answer.exit_code), ('results', steps), ('raw', answer.output)  ])
 
