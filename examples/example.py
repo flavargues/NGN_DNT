@@ -17,8 +17,12 @@ configuration = DNTConfiguration(
 myInstance.build(configuration)
 
 ping = myInstance.ping("host1", "host2")
+print(ping)
 traceroute = myInstance.traceroute("host1", "host2")
+print(traceroute)
 iperf3 = myInstance.iperf3("host1", "host2")
+print(iperf3)
 twamp = myInstance.twamp("host1", "host2")
+print(twamp)
 
 myInstance.destroy()
