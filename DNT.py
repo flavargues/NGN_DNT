@@ -416,40 +416,44 @@ class DNT():
 	def iperf3(self, sender: str, receiver:str):
 		print('⌛ Running iperf3')
 		answer = self.dockerDaemon.containers.get(sender).exec_run("iperf3 -c " + self.__resolve(receiver), tty=True)
-		output = str(answer.output)
-		lines = output.split('\\r\\n')
+		try:
+			output = str(answer.output)
+			lines = output.split('\\r\\n')
 
-		while "- - - " not in lines[0]:
+			while "- - - " not in lines[0]:
+				lines.pop(0)
 			lines.pop(0)
-		lines.pop(0)
-		lines.pop(0)
-		lines.remove('iperf Done.')
-		lines.remove('')
-		lines.remove('\'')
-		
+			lines.pop(0)
+			lines.remove('iperf Done.')
+			lines.remove('')
+			lines.remove('\'')
+			
 
-		steps = list()
-		for line in lines:
-			role = re.findall('(sender|receiver)', line)[0]
-			interval = re.findall('\]\s+(.+  sec)', line)[0]
-			transfer = re.findall('(\d+)\s+\wBytes', line)[0]
-			bitrate = re.findall('(\d+)\s+\w+bits', line)[0]
-			try:
-				retr = re.findall('\/sec\s+(\d+)', line)[0]
-			except IndexError:
-				retr = ''
+			steps = list()
+			for line in lines:
+				role = re.findall('(sender|receiver)', line)[0]
+				interval = re.findall('\]\s+(.+  sec)', line)[0]
+				transfer = re.findall('(\d+)\s+\wBytes', line)[0]
+				bitrate = re.findall('(\d+)\s+\w+bits', line)[0]
+				try:
+					retr = re.findall('\/sec\s+(\d+)', line)[0]
+				except IndexError:
+					retr = ''
 
-			steps.append([[
-				('role', role),
-				('interval', interval),
-				('transfer', transfer),
-				('bitrate', bitrate),
-				('retries', retr)
-			]])
+				steps.append([[
+					('role', role),
+					('interval', interval),
+					('transfer', transfer),
+					('bitrate', bitrate),
+					('retries', retr)
+				]])
 
-		feedback = dict([  ('exit_code', answer.exit_code), ('results', steps), ('raw', answer.output)  ])
+			feedback = dict([  ('exit_code', answer.exit_code), ('results', steps), ('raw', answer.output)  ])
+		except Exception as err:
+			return answer, err
 
 	def twamp(self, sender: str, receiver:str, test_sessions:int = 2, test_sess_msgs:int = 2):
 		print('⌛ Running TWAMP')
 		out = self.dockerDaemon.containers.get(sender).exec_run(f"/app/client -p 8000 -n {test_sessions} -m {test_sess_msgs} -s " + self.__resolve(receiver), tty=True)
 		return out
+		
