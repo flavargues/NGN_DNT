@@ -47,8 +47,8 @@ dockerTestNetwork.connect()
 ```
 You can also give the connect() function the socket of the docker daemon as a string. 
 
-**Your configuration here (see below)**
-**Your tests here (see below)**
+**Your configuration here (see below)**  
+**Your tests here (see below)**  
 
 Don't forget to destroy your infrastructure by running this function ! It will remove the containers and networks created by the program.
 ```python
