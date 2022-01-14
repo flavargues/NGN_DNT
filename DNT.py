@@ -440,15 +440,16 @@ class DNT():
 				except IndexError:
 					retr = ''
 
-				steps.append([[
+				steps.append([
 					('role', role),
 					('interval', interval),
 					('transfer', transfer),
 					('bitrate', bitrate),
 					('retries', retr)
-				]])
+				])
 
 			feedback = dict([  ('exit_code', answer.exit_code), ('results', steps), ('raw', answer.output)  ])
+			return feedback
 		except Exception as err:
 			return answer, err
 
@@ -456,4 +457,3 @@ class DNT():
 		print('⌛ Running TWAMP')
 		out = self.dockerDaemon.containers.get(sender).exec_run(f"/app/client -p 8000 -n {test_sessions} -m {test_sess_msgs} -s " + self.__resolve(receiver), tty=True)
 		return out
-		
