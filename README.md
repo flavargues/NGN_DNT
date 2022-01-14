@@ -69,6 +69,7 @@ configuration = TestNetworkConfiguration(
     corrupt=  ["0%"   ,"0%"    ,"0%"    ,"0%"        ]
 )
 ```
+❗❗❗ The more traffic control you set, the more chance there is that tests will straight out fail ! It is recommended to set reasonable values.  
 NGN_DNT recognizes the following labels:
 * `topology` - the topology to be created:
     * `star`: first host defined will be in the center, the others will be connected only to the center.
