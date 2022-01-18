@@ -150,8 +150,8 @@ Returns a python.dict() built as such:
 * exit_code
 * steps : list()
   * role
-  * intervak
-  * trasnfer
+  * interval
+  * transfer
   * bitrate
   * retries
 * raw: non parsed output of exec_run

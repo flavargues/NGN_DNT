@@ -149,24 +149,48 @@ class DNT():
 			print('		* \'ewma\': Exponentially Weighted Moving Average')
 			print('	* \'raw\': non parsed output of exec_run')
 			print()
-
-		'''
-		traceroute clientHostName serverHostName
-
-		iperf3     clientHostName serverHostName
-
-		twamp      clientHostName serverHostName
-
 		
-		'''
-		
+		if helpOn in ['all', 'traceroute']:
+			print('traceroute	   clientHostName serverHostName')
+			print('	Returns a python.dict() built as such:')
+			print('	* \'exit_code\'')
+			print('	* \'results\'')
+			print('		* \'destination\': ip of target')
+			print('		* \'dataSize\'')
+			print('		* \'hops\': list()')
+			print('			* \'hopNumber\'')
+			print('			* \'host.Interface\'')
+			print('			* \'packetsTransmitted\'')
+			print('			* \'targetIP\'')
+			print('			* \'hop1\'')
+			print('			* \'hop2\'')
+			print('			* \'hop3\'')
+			print('	* \'raw\': non parsed output of exec_run')
+			print()
 
+		if helpOn in ['all', 'iperf3']:
+			print('iperf3 	   clientHostName serverHostName durationInSec=5')
+			print('	Returns a python.dict() built as such:')
+			print('	* \'exit_code\'')
+			print('	* \'steps: list()\'')
+			print('		* \'role\': ip of target')
+			print('		* \'interval\'')
+			print('		* \'transfer\': list()')
+			print('		* \'bitrate\': list()')
+			print('		* \'retries\': list()')
+			print('	* \'raw\': non parsed output of exec_run')
+			print()
+
+		if helpOn in ['all', 'twamp']:
+			print('twamp 	   clientHostName serverHostName test_sessions = 2, test_sess_msgs = 2')
+			print('	Returns anon parsed output of exec_run')
+			print()
 
 	def connect(self, dockerDaemon = 'unix:///var/run/docker.sock'):
 		try:
 			newDaemon = DockerClient(base_url=dockerDaemon)
 			if newDaemon.ping():
-				print("🐳Connected to docker daemon.")
+				print(f"🐳Connected to docker daemon at {dockerDaemon}.")
 				self.dockerDaemon = newDaemon
 			else:
 				raise Exception("Daemon doesn't ping back.")
